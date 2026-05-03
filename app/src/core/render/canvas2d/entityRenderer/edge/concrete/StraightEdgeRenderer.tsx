@@ -13,7 +13,6 @@ import { ConnectPoint } from "@/core/stage/stageObject/entity/ConnectPoint";
 import { Section } from "@/core/stage/stageObject/entity/Section";
 import { TextNode } from "@/core/stage/stageObject/entity/TextNode";
 import { SvgUtils } from "@/core/render/svg/SvgUtils";
-import { Renderer } from "@/core/render/canvas2d/renderer";
 import { EdgeRendererClass } from "@/core/render/canvas2d/entityRenderer/edge/EdgeRendererClass";
 
 /**
@@ -124,39 +123,20 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     const straightBodyLine = edge.bodyLine;
     const scaledWidth = edgeWidth * this.project.camera.currentScale;
 
-    if (edge.text.trim() === "") {
-      // 没有文字的边
-      this.renderLine(
-        this.project.renderer.transformWorld2View(straightBodyLine.start),
-        this.project.renderer.transformWorld2View(straightBodyLine.end),
-        edge,
-        scaledWidth,
-      );
-    } else {
-      // 有文字的边
-      const midPoint = straightBodyLine.midPoint();
-      const startHalf = new Line(straightBodyLine.start, midPoint);
-      const endHalf = new Line(midPoint, straightBodyLine.end);
-      this.project.textRenderer.renderMultiLineTextFromCenter(
-        edge.text,
-        this.project.renderer.transformWorld2View(midPoint),
-        Renderer.FONT_SIZE * this.project.camera.currentScale,
-        Infinity,
-        edgeColor,
-      );
-      const edgeTextRectangle = edge.textRectangle;
+    this.renderLine(
+      this.project.renderer.transformWorld2View(straightBodyLine.start),
+      this.project.renderer.transformWorld2View(straightBodyLine.end),
+      edge,
+      scaledWidth,
+    );
 
-      this.renderLine(
-        this.project.renderer.transformWorld2View(straightBodyLine.start),
-        this.project.renderer.transformWorld2View(edgeTextRectangle.getLineIntersectionPoint(startHalf)),
-        edge,
-        scaledWidth,
-      );
-      this.renderLine(
-        this.project.renderer.transformWorld2View(straightBodyLine.end),
-        this.project.renderer.transformWorld2View(edgeTextRectangle.getLineIntersectionPoint(endHalf)),
-        edge,
-        scaledWidth,
+    if (edge.text.trim() !== "") {
+      this.project.textRenderer.renderMultiLineTextFromCenterWithStroke(
+        edge.text,
+        this.project.renderer.transformWorld2View(straightBodyLine.midPoint()),
+        edge.textFontSize * this.project.camera.currentScale,
+        edgeColor,
+        this.project.stageStyleManager.currentStyle.Background,
       );
     }
     if (!(edge.target instanceof ConnectPoint)) {
@@ -176,22 +156,15 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     const edgeColor = edge.color.equals(Color.Transparent)
       ? this.project.stageStyleManager.currentStyle.StageObjectBorder
       : edge.color;
-    if (edge.text.trim() === "") {
-      // 没有文字的边
-      lineBody = SvgUtils.line(edge.bodyLine.start, edge.bodyLine.end, edgeColor, 2);
-    } else {
-      // 有文字的边
-      const midPoint = edge.bodyLine.midPoint();
-      const startHalf = new Line(edge.bodyLine.start, midPoint);
-      const endHalf = new Line(midPoint, edge.bodyLine.end);
-      const edgeTextRectangle = edge.textRectangle;
+    lineBody = SvgUtils.line(edge.bodyLine.start, edge.bodyLine.end, edgeColor, 2);
 
-      textNode = SvgUtils.textFromCenter(edge.text, midPoint, Renderer.FONT_SIZE, edgeColor);
-      lineBody = (
-        <>
-          {SvgUtils.line(edge.bodyLine.start, edgeTextRectangle.getLineIntersectionPoint(startHalf), edgeColor, 2)}
-          {SvgUtils.line(edge.bodyLine.end, edgeTextRectangle.getLineIntersectionPoint(endHalf), edgeColor, 2)}
-        </>
+    if (edge.text.trim() !== "") {
+      textNode = SvgUtils.textFromCenterWithStroke(
+        edge.text,
+        edge.bodyLine.midPoint(),
+        edge.textFontSize,
+        edgeColor,
+        this.project.stageStyleManager.currentStyle.Background,
       );
     }
     // 加箭头
@@ -241,45 +214,29 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     const endPoint = targetRectangle.getLineIntersectionPoint(endLine);
     const scaledWidth = 2 * this.project.camera.currentScale;
 
-    if (edge.text.trim() === "") {
-      // 没有文字的边
-      this.renderLine(
-        this.project.renderer.transformWorld2View(startPoint),
-        this.project.renderer.transformWorld2View(shiftingMidPoint),
-        edge,
-        scaledWidth,
-      );
-      this.renderLine(
-        this.project.renderer.transformWorld2View(shiftingMidPoint),
-        this.project.renderer.transformWorld2View(endPoint),
-        edge,
-        scaledWidth,
-      );
-    } else {
-      // 有文字的边
+    this.renderLine(
+      this.project.renderer.transformWorld2View(startPoint),
+      this.project.renderer.transformWorld2View(shiftingMidPoint),
+      edge,
+      scaledWidth,
+    );
+    this.renderLine(
+      this.project.renderer.transformWorld2View(shiftingMidPoint),
+      this.project.renderer.transformWorld2View(endPoint),
+      edge,
+      scaledWidth,
+    );
+
+    if (edge.text.trim() !== "") {
       const edgeColor = edge.color.equals(Color.Transparent)
         ? this.project.stageStyleManager.currentStyle.StageObjectBorder
         : edge.color;
-      this.project.textRenderer.renderTextFromCenter(
+      this.project.textRenderer.renderMultiLineTextFromCenterWithStroke(
         edge.text,
         this.project.renderer.transformWorld2View(shiftingMidPoint),
-        Renderer.FONT_SIZE * this.project.camera.currentScale,
+        edge.textFontSize * this.project.camera.currentScale,
         edgeColor,
-      );
-      const edgeTextRectangle = edge.textRectangle;
-      const start2MidPoint = edgeTextRectangle.getLineIntersectionPoint(startLine);
-      const mid2EndPoint = edgeTextRectangle.getLineIntersectionPoint(endLine);
-      this.renderLine(
-        this.project.renderer.transformWorld2View(startPoint),
-        this.project.renderer.transformWorld2View(start2MidPoint),
-        edge,
-        scaledWidth,
-      );
-      this.renderLine(
-        this.project.renderer.transformWorld2View(mid2EndPoint),
-        this.project.renderer.transformWorld2View(endPoint),
-        edge,
-        scaledWidth,
+        this.project.stageStyleManager.currentStyle.Background,
       );
     }
     this.renderArrowHead(
@@ -314,7 +271,7 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
       this.project.renderer.transformWorld2View(
         edge.target.collisionBox.getRectangle().location.add(new Vector(0, -50)),
       ),
-      Renderer.FONT_SIZE * this.project.camera.currentScale,
+      edge.textFontSize * this.project.camera.currentScale,
       edgeColor,
     );
   }

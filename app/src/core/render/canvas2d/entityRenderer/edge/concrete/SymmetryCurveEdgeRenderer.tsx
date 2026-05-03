@@ -8,7 +8,6 @@ import { CubicBezierCurve, Line, SymmetryCurve } from "@graphif/shapes";
 // import { ConnectPoint } from "@/core/stage/stageObject/entity/ConnectPoint";
 import { Project, service } from "@/core/Project";
 import { EdgeRendererClass } from "@/core/render/canvas2d/entityRenderer/edge/EdgeRendererClass";
-import { Renderer } from "@/core/render/canvas2d/renderer";
 import { SvgUtils } from "@/core/render/svg/SvgUtils";
 import { Settings } from "@/core/service/Settings";
 import { ConnectableEntity } from "@/core/stage/stageObject/abstract/ConnectableEntity";
@@ -161,7 +160,7 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
       startDirection,
       end,
       endDirection,
-      Math.max(50, Math.abs(Math.min(Math.abs(start.x - end.x), Math.abs(start.y - end.y))) / 2),
+      Math.max(edgeWidth * 25, Math.abs(Math.min(Math.abs(start.x - end.x), Math.abs(start.y - end.y))) / 2),
     );
 
     // 曲线模式先不屏蔽箭头，有点不美观，空出来一段距离
@@ -242,7 +241,7 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
       this.project.renderer.transformWorld2View(
         edge.target.collisionBox.getRectangle().location.add(new Vector(0, -50)),
       ),
-      Renderer.FONT_SIZE * this.project.camera.currentScale,
+      edge.textFontSize * this.project.camera.currentScale,
       Infinity,
       edgeColor,
     );
@@ -299,71 +298,49 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
       }
     }
 
+    let svgEdgeWidth = 2;
+    if (Settings.enableAutoEdgeWidth && edge.target instanceof Section && edge.source instanceof Section) {
+      const rect1 = edge.source.collisionBox.getRectangle();
+      const rect2 = edge.target.collisionBox.getRectangle();
+      svgEdgeWidth = Math.min(
+        Math.min(Math.max(rect1.width, rect1.height), Math.max(rect2.width, rect2.height)) / 100,
+        100,
+      );
+    } else if (edge.source instanceof TextNode) {
+      svgEdgeWidth = edge.source.getBorderWidth();
+    }
+
     const curve = new SymmetryCurve(
       start,
       startDirection,
       end,
       endDirection,
-      Math.max(50, Math.abs(Math.min(Math.abs(start.x - end.x), Math.abs(start.y - end.y))) / 2),
+      Math.max(svgEdgeWidth * 25, Math.abs(Math.min(Math.abs(start.x - end.x), Math.abs(start.y - end.y))) / 2),
     );
 
     const bezier = curve.bezier;
 
-    // 箭头大小
-    const arrowSize = 15;
+    // 箭头大小与线宽对应（和 renderArrowCurve 保持一致）
+    const arrowSize = 8 * svgEdgeWidth;
     // curve.endDirection 是从节点指向曲线的方向（外侧方向）
     const curveEndDirection = curve.endDirection.normalize();
-    // 原始交点（节点边缘）
-    const curveEnd = end.clone();
-    // 箭头尖端位置（稍微向外偏移，与渲染时一致）
-    const arrowTip = curveEnd.add(curveEndDirection.multiply(2));
+    // 箭头尖端精确落在节点边缘
+    const arrowTip = end.clone();
     // 曲线终点应该在箭头尾部
     // 箭头尾部距离箭头尖端是 arrowSize/2，方向是外侧方向
     const adjustedEnd = arrowTip.add(curveEndDirection.multiply(arrowSize / 2));
 
-    if (edge.text.trim() === "") {
-      // 没有文字的边
-      // 使用调整后的终点创建贝塞尔曲线
-      const adjustedBezier = new CubicBezierCurve(bezier.start, bezier.ctrlPt1, bezier.ctrlPt2, adjustedEnd);
-      lineBody = SvgUtils.bezierCurve(adjustedBezier, edgeColor, 2);
-    } else {
-      // 有文字的边
+    const adjustedBezier = new CubicBezierCurve(bezier.start, bezier.ctrlPt1, bezier.ctrlPt2, adjustedEnd);
+    lineBody = SvgUtils.bezierCurve(adjustedBezier, edgeColor, 2);
+
+    if (edge.text.trim() !== "") {
       const midPoint = bezier.getPointByT(0.5);
-      const edgeTextRectangle = edge.textRectangle;
-
-      textNode = SvgUtils.textFromCenter(edge.text, midPoint, Renderer.FONT_SIZE, edgeColor);
-
-      // 计算文字矩形与贝塞尔曲线的交点
-      const startToMid = new Line(start, midPoint);
-      const adjustedEndToMid = new Line(adjustedEnd, midPoint);
-      const startIntersection = edgeTextRectangle.getLineIntersectionPoint(startToMid);
-      const endIntersection = edgeTextRectangle.getLineIntersectionPoint(adjustedEndToMid);
-
-      // 创建两段贝塞尔曲线
-      const startCurve = new CubicBezierCurve(
-        start,
-        bezier.ctrlPt1,
-        new Vector(
-          bezier.ctrlPt1.x + (bezier.ctrlPt2.x - bezier.ctrlPt1.x) * 0.5,
-          bezier.ctrlPt1.y + (bezier.ctrlPt2.y - bezier.ctrlPt1.y) * 0.5,
-        ),
-        startIntersection,
-      );
-      const endCurve = new CubicBezierCurve(
-        endIntersection,
-        new Vector(
-          bezier.ctrlPt1.x + (bezier.ctrlPt2.x - bezier.ctrlPt1.x) * 0.5,
-          bezier.ctrlPt1.y + (bezier.ctrlPt2.y - bezier.ctrlPt1.y) * 0.5,
-        ),
-        bezier.ctrlPt2,
-        adjustedEnd,
-      );
-
-      lineBody = (
-        <>
-          {SvgUtils.bezierCurve(startCurve, edgeColor, 2)}
-          {SvgUtils.bezierCurve(endCurve, edgeColor, 2)}
-        </>
+      textNode = SvgUtils.textFromCenterWithStroke(
+        edge.text,
+        midPoint,
+        edge.textFontSize,
+        edgeColor,
+        this.project.stageStyleManager.currentStyle.Background,
       );
     }
 
@@ -501,8 +478,7 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
       this.project.worldRenderUtils.renderSymmetryCurve(curve, color, width);
     }
     // 画箭头
-    const endPoint = end.add(curve.endDirection.multiply(2));
-    this.project.edgeRenderer.renderArrowHead(endPoint, curve.endDirection.multiply(-1), size, color);
+    this.project.edgeRenderer.renderArrowHead(end, curve.endDirection.multiply(-1), size, color);
 
     if (Settings.showDebug) {
       const controlPoint1 = curve.bezier.ctrlPt1;
@@ -554,20 +530,12 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     if (edge.text.trim() === "") {
       return;
     }
-    // 画文本底色
-    this.project.shapeRenderer.renderRect(
-      this.project.renderer.transformWorld2View(edge.textRectangle),
-      this.project.stageStyleManager.currentStyle.Background.toNewAlpha(Settings.windowBackgroundAlpha),
-      Color.Transparent,
-      1,
-    );
-
-    this.project.textRenderer.renderMultiLineTextFromCenter(
+    this.project.textRenderer.renderMultiLineTextFromCenterWithStroke(
       edge.text,
       this.project.renderer.transformWorld2View(curve.bezier.getPointByT(0.5)),
-      Renderer.FONT_SIZE * this.project.camera.currentScale,
-      Infinity,
+      edge.textFontSize * this.project.camera.currentScale,
       edge.color.equals(Color.Transparent) ? this.project.stageStyleManager.currentStyle.StageObjectBorder : edge.color,
+      this.project.stageStyleManager.currentStyle.Background,
     );
   }
 }

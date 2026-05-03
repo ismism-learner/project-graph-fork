@@ -1,9 +1,12 @@
 import { Project } from "@/core/Project";
 import { Renderer } from "@/core/render/canvas2d/renderer";
+import { Settings } from "@/core/service/Settings";
 import { ConnectableEntity } from "@/core/stage/stageObject/abstract/ConnectableEntity";
 import { Edge } from "@/core/stage/stageObject/association/Edge";
 import { EdgeCollisionBoxGetter } from "@/core/stage/stageObject/association/EdgeCollisionBoxGetter";
 import { CollisionBox } from "@/core/stage/stageObject/collisionBox/collisionBox";
+import { Section } from "@/core/stage/stageObject/entity/Section";
+import { TextNode } from "@/core/stage/stageObject/entity/TextNode";
 import { getMultiLineTextSize } from "@/utils/font";
 import { Color, Vector } from "@graphif/data-structures";
 import { id, passExtraAtArg1, passObject, serializable } from "@graphif/serializer";
@@ -79,9 +82,25 @@ export class LineEdge extends Edge {
     this.adjustSizeByText();
   }
 
+  /** 与渲染器保持一致的线宽，用于字号等比缩放 */
+  get edgeWidth(): number {
+    if (Settings.enableAutoEdgeWidth && this.target instanceof Section && this.source instanceof Section) {
+      const rect1 = this.source.collisionBox.getRectangle();
+      const rect2 = this.target.collisionBox.getRectangle();
+      return Math.min(Math.min(Math.max(rect1.width, rect1.height), Math.max(rect2.width, rect2.height)) / 100, 100);
+    } else if (this.source instanceof TextNode) {
+      return this.source.getBorderWidth();
+    }
+    return 2;
+  }
+
+  /** 连线文字字号，随线宽等比缩放 */
+  get textFontSize(): number {
+    return Renderer.FONT_SIZE * (this.edgeWidth / 2);
+  }
+
   get textRectangle(): Rectangle {
-    // HACK: 这里会造成频繁渲染，频繁计算文字宽度进而可能出现性能问题
-    const textSize = getMultiLineTextSize(this.text, Renderer.FONT_SIZE, 1.2);
+    const textSize = getMultiLineTextSize(this.text, this.textFontSize, 1.2);
     // 自环连线的文字位置在节点左上角上方
     if (this.source.uuid === this.target.uuid) {
       const textLocation = this.source.collisionBox.getRectangle().location.add(new Vector(0, -50));

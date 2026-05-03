@@ -5,6 +5,8 @@ import { CollisionBox } from "@/core/stage/stageObject/collisionBox/collisionBox
 import { Circle, Line, SymmetryCurve } from "@graphif/shapes";
 import { ConnectPoint } from "../entity/ConnectPoint";
 import { ImageNode } from "../entity/ImageNode";
+import { Section } from "../entity/Section";
+import { TextNode } from "../entity/TextNode";
 import { Vector } from "@graphif/data-structures";
 
 export namespace EdgeCollisionBoxGetter {
@@ -104,6 +106,19 @@ export namespace EdgeCollisionBoxGetter {
         return isExact ? lineDirection.multiply(-1) : targetRect.getNormalVectorAt(end);
       })();
 
+      // Mirror the edgeWidth calculation from renderNormalState so bending matches the visual curve.
+      let edgeWidth = 2;
+      if (Settings.enableAutoEdgeWidth && edge.target instanceof Section && edge.source instanceof Section) {
+        const rect1 = edge.source.collisionBox.getRectangle();
+        const rect2 = edge.target.collisionBox.getRectangle();
+        edgeWidth = Math.min(
+          Math.min(Math.max(rect1.width, rect1.height), Math.max(rect2.width, rect2.height)) / 100,
+          100,
+        );
+      } else if (edge.source instanceof TextNode) {
+        edgeWidth = edge.source.getBorderWidth();
+      }
+
       // const endNormal = edge.target.collisionBox.getRectangle().getNormalVectorAt(end);
       return new CollisionBox([
         new SymmetryCurve(
@@ -111,7 +126,7 @@ export namespace EdgeCollisionBoxGetter {
           startDirection,
           end.add(endDirection.multiply(15 / 2)),
           endDirection,
-          Math.max(50, Math.abs(Math.min(Math.abs(start.x - end.x), Math.abs(start.y - end.y))) / 2),
+          Math.max(edgeWidth * 25, Math.abs(Math.min(Math.abs(start.x - end.x), Math.abs(start.y - end.y))) / 2),
         ),
       ]);
     }

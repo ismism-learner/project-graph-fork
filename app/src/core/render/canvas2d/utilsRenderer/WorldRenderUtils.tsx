@@ -148,7 +148,7 @@ export class WorldRenderUtils {
         this.project.renderer.transformWorld2View(start),
         this.project.renderer.transformWorld2View(end),
         this.project.stageStyleManager.currentStyle.effects.flash,
-        width * this.project.camera.currentScale,
+        width,
       );
     }
 
@@ -179,8 +179,8 @@ export class WorldRenderUtils {
     strokeWidth: number,
   ): void {
     const c = this.project.renderer.transformWorld2View(centerLocation);
-    radius *= this.project.camera.currentScale;
-    strokeWidth *= this.project.camera.currentScale;
+    // radius *= this.project.camera.currentScale;
+    // strokeWidth *= this.project.camera.currentScale;
     const originLineJoin = this.project.canvas.ctx.lineJoin;
     this.project.canvas.ctx.lineJoin = "miter";
     this.project.canvas.ctx.beginPath();
