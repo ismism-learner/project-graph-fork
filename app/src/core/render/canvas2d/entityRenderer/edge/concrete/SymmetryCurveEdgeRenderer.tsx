@@ -2,6 +2,7 @@ import { CircleFlameEffect } from "@/core/service/feedbackService/effectEngine/c
 import { LineCuttingEffect } from "@/core/service/feedbackService/effectEngine/concrete/LineCuttingEffect";
 import { Effect } from "@/core/service/feedbackService/effectEngine/effectObject";
 import { LineEdge } from "@/core/stage/stageObject/association/LineEdge";
+import { Edge } from "@/core/stage/stageObject/association/Edge";
 import { Color, ProgressNumber, Vector } from "@graphif/data-structures";
 import { CubicBezierCurve, Line, SymmetryCurve } from "@graphif/shapes";
 // import { ConnectPoint } from "@/core/stage/stageObject/entity/ConnectPoint";
@@ -56,15 +57,7 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     const sourceRate = sourceRectangleRate ?? Vector.same(0.5);
     const targetRate = targetRectangleRate ?? Vector.same(0.5);
 
-    const isOldDefaultRate = (r: Vector): boolean => {
-      return (
-        (r.x === 0.5 && r.y === 0.5) ||
-        (r.x === 0.01 && r.y === 0.5) ||
-        (r.x === 0.99 && r.y === 0.5) ||
-        (r.x === 0.5 && r.y === 0.01) ||
-        (r.x === 0.5 && r.y === 0.99)
-      );
-    };
+    const isCenterRate = (r: Vector): boolean => r.x === 0.5 && r.y === 0.5;
 
     const sourceRect = startNode.collisionBox.getRectangle();
     const targetRect = toNode.collisionBox.getRectangle();
@@ -75,11 +68,8 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     let start: Vector;
     if (startNode instanceof ConnectPoint) {
       start = startNode.geometryCenter;
-    } else if (
-      (startNode instanceof ImageNode || startNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(sourceRate)
-    ) {
-      start = sourceInner;
+    } else if (!isCenterRate(sourceRate)) {
+      start = Edge.getExactEdgePositionByRate(sourceRect, sourceRate) ?? sourceInner;
     } else {
       start = sourceRect.getLineIntersectionPoint(line);
     }
@@ -87,11 +77,8 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     let end: Vector;
     if (toNode instanceof ConnectPoint) {
       end = toNode.geometryCenter;
-    } else if (
-      (toNode instanceof ImageNode || toNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(targetRate)
-    ) {
-      end = targetInner;
+    } else if (!isCenterRate(targetRate)) {
+      end = Edge.getExactEdgePositionByRate(targetRect, targetRate) ?? targetInner;
     } else {
       end = targetRect.getLineIntersectionPoint(line);
     }
@@ -122,42 +109,38 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     if (edge.source instanceof ConnectPoint) {
       startDirection = Vector.getZero();
     } else {
-      const sourceRect = edge.source.collisionBox.getRectangle();
-      // 检查是否是图片或引用块节点的精确位置（不在边缘上）
-      const isSourceExactPosition =
-        (edge.source instanceof ImageNode || edge.source.constructor.name === "ReferenceBlockNode") &&
-        start.x !== sourceRect.left &&
-        start.x !== sourceRect.right &&
-        start.y !== sourceRect.top &&
-        start.y !== sourceRect.bottom;
-
-      if (isSourceExactPosition) {
-        // 对于图片或引用块节点的精确位置，使用连线方向作为法线向量
-        startDirection = lineDirection;
+      const fromRate = Edge.getNormalVectorByRate(edge.sourceRectangleRate);
+      if (fromRate !== null) {
+        startDirection = fromRate;
       } else {
-        // 否则使用矩形边缘的法线向量
-        startDirection = sourceRect.getNormalVectorAt(start);
+        // Center rate or image node interior: use intersection point's rect-edge normal,
+        // falling back to line direction for interior image positions.
+        const sourceRect = edge.source.collisionBox.getRectangle();
+        const isSourceExactPosition =
+          (edge.source instanceof ImageNode || edge.source.constructor.name === "ReferenceBlockNode") &&
+          start.x !== sourceRect.left &&
+          start.x !== sourceRect.right &&
+          start.y !== sourceRect.top &&
+          start.y !== sourceRect.bottom;
+        startDirection = isSourceExactPosition ? lineDirection : sourceRect.getNormalVectorAt(start);
       }
     }
 
     if (edge.target instanceof ConnectPoint) {
       endDirection = Vector.getZero();
     } else {
-      const targetRect = edge.target.collisionBox.getRectangle();
-      // 检查是否是图片或引用块节点的精确位置（不在边缘上）
-      const isTargetExactPosition =
-        (edge.target instanceof ImageNode || edge.target.constructor.name === "ReferenceBlockNode") &&
-        end.x !== targetRect.left &&
-        end.x !== targetRect.right &&
-        end.y !== targetRect.top &&
-        end.y !== targetRect.bottom;
-
-      if (isTargetExactPosition) {
-        // 对于图片或引用块节点的精确位置，使用连线方向的反方向作为法线向量
-        endDirection = lineDirection.multiply(-1);
+      const toRate = Edge.getNormalVectorByRate(edge.targetRectangleRate);
+      if (toRate !== null) {
+        endDirection = toRate;
       } else {
-        // 否则使用矩形边缘的法线向量
-        endDirection = targetRect.getNormalVectorAt(end);
+        const targetRect = edge.target.collisionBox.getRectangle();
+        const isTargetExactPosition =
+          (edge.target instanceof ImageNode || edge.target.constructor.name === "ReferenceBlockNode") &&
+          end.x !== targetRect.left &&
+          end.x !== targetRect.right &&
+          end.y !== targetRect.top &&
+          end.y !== targetRect.bottom;
+        endDirection = isTargetExactPosition ? lineDirection.multiply(-1) : targetRect.getNormalVectorAt(end);
       }
     }
 
@@ -283,36 +266,36 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     if (edge.source instanceof ConnectPoint) {
       startDirection = Vector.getZero();
     } else {
-      const sourceRect = edge.source.collisionBox.getRectangle();
-      const isSourceExactPosition =
-        (edge.source instanceof ImageNode || edge.source.constructor.name === "ReferenceBlockNode") &&
-        start.x !== sourceRect.left &&
-        start.x !== sourceRect.right &&
-        start.y !== sourceRect.top &&
-        start.y !== sourceRect.bottom;
-
-      if (isSourceExactPosition) {
-        startDirection = lineDirection;
+      const fromRate = Edge.getNormalVectorByRate(edge.sourceRectangleRate);
+      if (fromRate !== null) {
+        startDirection = fromRate;
       } else {
-        startDirection = sourceRect.getNormalVectorAt(start);
+        const sourceRect = edge.source.collisionBox.getRectangle();
+        const isSourceExactPosition =
+          (edge.source instanceof ImageNode || edge.source.constructor.name === "ReferenceBlockNode") &&
+          start.x !== sourceRect.left &&
+          start.x !== sourceRect.right &&
+          start.y !== sourceRect.top &&
+          start.y !== sourceRect.bottom;
+        startDirection = isSourceExactPosition ? lineDirection : sourceRect.getNormalVectorAt(start);
       }
     }
 
     if (edge.target instanceof ConnectPoint) {
       endDirection = Vector.getZero();
     } else {
-      const targetRect = edge.target.collisionBox.getRectangle();
-      const isTargetExactPosition =
-        (edge.target instanceof ImageNode || edge.target.constructor.name === "ReferenceBlockNode") &&
-        end.x !== targetRect.left &&
-        end.x !== targetRect.right &&
-        end.y !== targetRect.top &&
-        end.y !== targetRect.bottom;
-
-      if (isTargetExactPosition) {
-        endDirection = lineDirection.multiply(-1);
+      const toRate = Edge.getNormalVectorByRate(edge.targetRectangleRate);
+      if (toRate !== null) {
+        endDirection = toRate;
       } else {
-        endDirection = targetRect.getNormalVectorAt(end);
+        const targetRect = edge.target.collisionBox.getRectangle();
+        const isTargetExactPosition =
+          (edge.target instanceof ImageNode || edge.target.constructor.name === "ReferenceBlockNode") &&
+          end.x !== targetRect.left &&
+          end.x !== targetRect.right &&
+          end.y !== targetRect.top &&
+          end.y !== targetRect.bottom;
+        endDirection = isTargetExactPosition ? lineDirection.multiply(-1) : targetRect.getNormalVectorAt(end);
       }
     }
 
@@ -409,23 +392,13 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     const rect = startNode.collisionBox.getRectangle();
     const rate = sourceRectangleRate ?? Vector.same(0.5);
 
-    const isOldDefaultRate = (r: Vector): boolean => {
-      return (
-        (r.x === 0.5 && r.y === 0.5) ||
-        (r.x === 0.01 && r.y === 0.5) ||
-        (r.x === 0.99 && r.y === 0.5) ||
-        (r.x === 0.5 && r.y === 0.01) ||
-        (r.x === 0.5 && r.y === 0.99)
-      );
-    };
+    const isCenterRate = (r: Vector): boolean => r.x === 0.5 && r.y === 0.5;
 
     const startInner = rect.getInnerLocationByRateVector(rate);
-    const isStartExactPosition =
-      (startNode instanceof ImageNode || startNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(rate);
+    const isStartExactPosition = !isCenterRate(rate);
 
     const start = isStartExactPosition
-      ? startInner
+      ? (Edge.getExactEdgePositionByRate(rect, rate) ?? startInner)
       : rect.getLineIntersectionPoint(new Line(startInner, mouseLocation));
     const end = mouseLocation;
     const direction = end.subtract(start);
@@ -435,7 +408,9 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     )
       .normalize()
       .multiply(-1);
-    const startDirection = isStartExactPosition ? direction.normalize() : rect.getNormalVectorAt(start);
+    const startDirection =
+      Edge.getNormalVectorByRate(rate) ??
+      (isStartExactPosition ? direction.normalize() : rect.getNormalVectorAt(start));
     this.renderArrowCurve(
       new SymmetryCurve(start, startDirection, end, endDirection, Math.abs(end.subtract(start).magnitude()) / 2),
       this.project.stageStyleManager.currentStyle.StageObjectBorder,
@@ -453,33 +428,29 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     const sourceRate = sourceRectangleRate ?? Vector.same(0.5);
     const targetRate = targetRectangleRate ?? Vector.same(0.5);
 
-    const isOldDefaultRate = (r: Vector): boolean => {
-      return (
-        (r.x === 0.5 && r.y === 0.5) ||
-        (r.x === 0.01 && r.y === 0.5) ||
-        (r.x === 0.99 && r.y === 0.5) ||
-        (r.x === 0.5 && r.y === 0.01) ||
-        (r.x === 0.5 && r.y === 0.99)
-      );
-    };
+    const isCenterRate = (r: Vector): boolean => r.x === 0.5 && r.y === 0.5;
 
     const startInner = startRect.getInnerLocationByRateVector(sourceRate);
     const endInner = endRect.getInnerLocationByRateVector(targetRate);
     const line = new Line(startInner, endInner);
 
-    const isStartExactPosition =
-      (startNode instanceof ImageNode || startNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(sourceRate);
-    const isEndExactPosition =
-      (endNode instanceof ImageNode || endNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(targetRate);
+    const isStartExactPosition = !isCenterRate(sourceRate);
+    const isEndExactPosition = !isCenterRate(targetRate);
 
-    const start = isStartExactPosition ? startInner : startRect.getLineIntersectionPoint(line);
-    const end = isEndExactPosition ? endInner : endRect.getLineIntersectionPoint(line);
+    const start = isStartExactPosition
+      ? (Edge.getExactEdgePositionByRate(startRect, sourceRate) ?? startInner)
+      : startRect.getLineIntersectionPoint(line);
+    const end = isEndExactPosition
+      ? (Edge.getExactEdgePositionByRate(endRect, targetRate) ?? endInner)
+      : endRect.getLineIntersectionPoint(line);
 
     const lineDirection = end.subtract(start).normalize();
-    const startDirection = isStartExactPosition ? lineDirection : startRect.getNormalVectorAt(start);
-    const endDirection = isEndExactPosition ? lineDirection.multiply(-1) : endRect.getNormalVectorAt(end);
+    const startDirection =
+      Edge.getNormalVectorByRate(sourceRate) ??
+      (isStartExactPosition ? lineDirection : startRect.getNormalVectorAt(start));
+    const endDirection =
+      Edge.getNormalVectorByRate(targetRate) ??
+      (isEndExactPosition ? lineDirection.multiply(-1) : endRect.getNormalVectorAt(end));
 
     this.renderArrowCurve(
       new SymmetryCurve(start, startDirection, end, endDirection, Math.abs(end.subtract(start).magnitude()) / 2),

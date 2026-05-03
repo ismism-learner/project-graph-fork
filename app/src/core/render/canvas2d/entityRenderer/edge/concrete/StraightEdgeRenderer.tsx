@@ -8,8 +8,8 @@ import { Effect } from "@/core/service/feedbackService/effectEngine/effectObject
 import { Settings } from "@/core/service/Settings";
 import { ConnectableEntity } from "@/core/stage/stageObject/abstract/ConnectableEntity";
 import { LineEdge } from "@/core/stage/stageObject/association/LineEdge";
+import { Edge } from "@/core/stage/stageObject/association/Edge";
 import { ConnectPoint } from "@/core/stage/stageObject/entity/ConnectPoint";
-import { ImageNode } from "@/core/stage/stageObject/entity/ImageNode";
 import { Section } from "@/core/stage/stageObject/entity/Section";
 import { TextNode } from "@/core/stage/stageObject/entity/TextNode";
 import { SvgUtils } from "@/core/render/svg/SvgUtils";
@@ -45,15 +45,7 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     const sourceRate = sourceRectangleRate ?? Vector.same(0.5);
     const targetRate = targetRectangleRate ?? Vector.same(0.5);
 
-    const isOldDefaultRate = (r: Vector): boolean => {
-      return (
-        (r.x === 0.5 && r.y === 0.5) ||
-        (r.x === 0.01 && r.y === 0.5) ||
-        (r.x === 0.99 && r.y === 0.5) ||
-        (r.x === 0.5 && r.y === 0.01) ||
-        (r.x === 0.5 && r.y === 0.99)
-      );
-    };
+    const isCenterRate = (r: Vector): boolean => r.x === 0.5 && r.y === 0.5;
 
     const sourceRect = startNode.collisionBox.getRectangle();
     const targetRect = toNode.collisionBox.getRectangle();
@@ -64,11 +56,8 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     let start: Vector;
     if (startNode instanceof ConnectPoint) {
       start = startNode.geometryCenter;
-    } else if (
-      (startNode instanceof ImageNode || startNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(sourceRate)
-    ) {
-      start = sourceInner;
+    } else if (!isCenterRate(sourceRate)) {
+      start = Edge.getExactEdgePositionByRate(sourceRect, sourceRate) ?? sourceInner;
     } else {
       start = sourceRect.getLineIntersectionPoint(line);
     }
@@ -76,11 +65,8 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     let end: Vector;
     if (toNode instanceof ConnectPoint) {
       end = toNode.geometryCenter;
-    } else if (
-      (toNode instanceof ImageNode || toNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(targetRate)
-    ) {
-      end = targetInner;
+    } else if (!isCenterRate(targetRate)) {
+      end = Edge.getExactEdgePositionByRate(targetRect, targetRate) ?? targetInner;
     } else {
       end = targetRect.getLineIntersectionPoint(line);
     }
@@ -337,25 +323,14 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     const rate = sourceRectangleRate ?? Vector.same(0.5);
     const startRect = startNode.collisionBox.getRectangle();
 
-    const isOldDefaultRate = (r: Vector): boolean => {
-      return (
-        (r.x === 0.5 && r.y === 0.5) ||
-        (r.x === 0.01 && r.y === 0.5) ||
-        (r.x === 0.99 && r.y === 0.5) ||
-        (r.x === 0.5 && r.y === 0.01) ||
-        (r.x === 0.5 && r.y === 0.99)
-      );
-    };
+    const isCenterRate = (r: Vector): boolean => r.x === 0.5 && r.y === 0.5;
 
     const startInner = startRect.getInnerLocationByRateVector(rate);
     let start: Vector;
     if (startNode instanceof ConnectPoint) {
       start = startNode.geometryCenter;
-    } else if (
-      (startNode instanceof ImageNode || startNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(rate)
-    ) {
-      start = startInner;
+    } else if (!isCenterRate(rate)) {
+      start = Edge.getExactEdgePositionByRate(startRect, rate) ?? startInner;
     } else {
       start = startRect.getLineIntersectionPoint(new Line(startInner, mouseLocation));
     }
@@ -387,15 +362,7 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     const startRect = startNode.collisionBox.getRectangle();
     const endRect = endNode.collisionBox.getRectangle();
 
-    const isOldDefaultRate = (r: Vector): boolean => {
-      return (
-        (r.x === 0.5 && r.y === 0.5) ||
-        (r.x === 0.01 && r.y === 0.5) ||
-        (r.x === 0.99 && r.y === 0.5) ||
-        (r.x === 0.5 && r.y === 0.01) ||
-        (r.x === 0.5 && r.y === 0.99)
-      );
-    };
+    const isCenterRate = (r: Vector): boolean => r.x === 0.5 && r.y === 0.5;
 
     const startInner = startRect.getInnerLocationByRateVector(sourceRate);
     const endInner = endRect.getInnerLocationByRateVector(targetRate);
@@ -404,11 +371,8 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     let start: Vector;
     if (startNode instanceof ConnectPoint) {
       start = startNode.geometryCenter;
-    } else if (
-      (startNode instanceof ImageNode || startNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(sourceRate)
-    ) {
-      start = startInner;
+    } else if (!isCenterRate(sourceRate)) {
+      start = Edge.getExactEdgePositionByRate(startRect, sourceRate) ?? startInner;
     } else {
       start = startRect.getLineIntersectionPoint(line);
     }
@@ -416,11 +380,8 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
     let end: Vector;
     if (endNode instanceof ConnectPoint) {
       end = endNode.geometryCenter;
-    } else if (
-      (endNode instanceof ImageNode || endNode.constructor.name === "ReferenceBlockNode") &&
-      !isOldDefaultRate(targetRate)
-    ) {
-      end = endInner;
+    } else if (!isCenterRate(targetRate)) {
+      end = Edge.getExactEdgePositionByRate(endRect, targetRate) ?? endInner;
     } else {
       end = endRect.getLineIntersectionPoint(line);
     }
