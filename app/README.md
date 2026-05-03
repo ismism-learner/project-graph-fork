@@ -14,6 +14,12 @@ Project Graph 是一款功能丰富、高效易用的桌面级节点图绘制工
 
 无论您是设计师、教师、还是开发人员，Project Graph 都能够为您提供简单流畅的用户体验。
 
+## 🖼️ Demo
+
+<div align="center">
+  <img src="./src/assets/readme-demo.png" alt="README demo图" width="900">
+</div>
+
 ## 🌟 功能特点
 
 - **直观的节点拖拽连接**：支持通过鼠标拖放快速创建、编辑和调整节点。
