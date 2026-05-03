@@ -492,6 +492,11 @@ settings:
     title: Path Pencadangan Otomatis Kustom
     description: |
       Mengatur path penyimpanan file cadangan otomatis, jika kosong akan menggunakan path default
+  autoBackupCustomPath2:
+    title: Path Pencadangan Otomatis Kustom (Kedua)
+    description: |
+      Jika path pertama kosong atau pencadangan gagal, akan mencoba path kedua
+      Jika path kedua juga gagal, akan kembali ke path default
   scaleExponent:
     title: Kecepatan Zoom Tampilan
     description: |

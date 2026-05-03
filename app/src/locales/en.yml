@@ -824,6 +824,9 @@ settings:
   autoBackupCustomPath:
     title: Custom Auto Backup Path
     description: "Set the save path for auto backup files, use default path if empty."
+  autoBackupCustomPath2:
+    title: Custom Auto Backup Path (Second)
+    description: "If the first backup path is empty or the backup fails, it will try the second path; if that also fails, it falls back to the default path."
   showTextNodeBorder:
     title: Show Text Node Border
     description: "Controls whether to show the text node border or not.\n"

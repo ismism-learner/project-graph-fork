@@ -502,6 +502,11 @@ settings:
     title: 自定义自动备份路径
     description: |
       设置自动备份文件的保存路径，如果为空则使用默认路径
+  autoBackupCustomPath2:
+    title: 自定义自动备份路径（第二路径）
+    description: |
+      第一备份路径为空或备份失败时，将尝试使用第二备份路径
+      第二备份路径也不可用时，将回退到默认路径
   scaleExponent:
     title: 视角缩放速度
     description: |

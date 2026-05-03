@@ -356,11 +356,12 @@ export function GlobalMenu() {
           </Item>
           <Item
             onClick={async () => {
-              if (Settings.autoBackupCustomPath && Settings.autoBackupCustomPath.trim()) {
-                await shellOpen(Settings.autoBackupCustomPath.trim());
-              } else {
+              const path = Settings.autoBackupCustomPath?.trim() || Settings.autoBackupCustomPath2?.trim();
+              if (!path) {
                 toast.error("未设置自定义备份路径");
+                return;
               }
+              await shellOpen(path);
             }}
           >
             <FolderClock />

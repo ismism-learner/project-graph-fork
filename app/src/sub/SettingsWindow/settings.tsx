@@ -248,7 +248,13 @@ const categories = {
   automation: {
     autoNamer: ["autoNamerTemplate", "autoNamerSectionTemplate", "autoNamerDetailsTemplate"],
     autoSave: ["autoSaveWhenClose", "autoSave", "autoSaveInterval"],
-    autoBackup: ["autoBackup", "autoBackupInterval", "autoBackupLimitCount", "autoBackupCustomPath"],
+    autoBackup: [
+      "autoBackup",
+      "autoBackupInterval",
+      "autoBackupLimitCount",
+      "autoBackupCustomPath",
+      "autoBackupCustomPath2",
+    ],
     autoImport: ["autoImportTxtFileWhenOpenPrg"],
   },
   control: {
