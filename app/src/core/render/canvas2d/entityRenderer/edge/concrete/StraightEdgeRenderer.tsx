@@ -139,7 +139,7 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
         this.project.stageStyleManager.currentStyle.Background,
       );
     }
-    if (!(edge.target instanceof ConnectPoint)) {
+    if (this.shouldRenderTargetArrow(edge)) {
       // 画箭头
       this.renderArrowHead(
         edge,
@@ -168,16 +168,18 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
       );
     }
     // 加箭头
-    const arrowHead = this.project.edgeRenderer.generateArrowHeadSvg(
-      edge.bodyLine.end.clone(),
-      edge.target.collisionBox
-        .getRectangle()
-        .getCenter()
-        .subtract(edge.source.collisionBox.getRectangle().getCenter())
-        .normalize(),
-      15,
-      edgeColor,
-    );
+    const arrowHead = this.shouldRenderTargetArrow(edge)
+      ? this.project.edgeRenderer.generateArrowHeadSvg(
+          edge.bodyLine.end.clone(),
+          edge.target.collisionBox
+            .getRectangle()
+            .getCenter()
+            .subtract(edge.source.collisionBox.getRectangle().getCenter())
+            .normalize(),
+          15,
+          edgeColor,
+        )
+      : null;
     return (
       <>
         {lineBody}
@@ -198,6 +200,10 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
       ? this.project.stageStyleManager.currentStyle.StageObjectBorder
       : edge.color;
     this.project.edgeRenderer.renderArrowHead(endPoint, direction, size, edgeColor);
+  }
+
+  private shouldRenderTargetArrow(edge: LineEdge): boolean {
+    return !(Settings.hideArrowWhenPointingToConnectPoint && edge.target instanceof ConnectPoint);
   }
 
   public renderShiftingState(edge: LineEdge): void {
@@ -239,11 +245,13 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
         this.project.stageStyleManager.currentStyle.Background,
       );
     }
-    this.renderArrowHead(
-      edge,
-      edge.target.collisionBox.getRectangle().getCenter().subtract(shiftingMidPoint).normalize(),
-      endPoint,
-    );
+    if (this.shouldRenderTargetArrow(edge)) {
+      this.renderArrowHead(
+        edge,
+        edge.target.collisionBox.getRectangle().getCenter().subtract(shiftingMidPoint).normalize(),
+        endPoint,
+      );
+    }
   }
 
   public renderCycleState(edge: LineEdge): void {
@@ -260,7 +268,13 @@ export class StraightEdgeRenderer extends EdgeRendererClass {
       2 * this.project.camera.currentScale,
     );
     // 画箭头
-    this.renderArrowHead(edge, new Vector(1, 0).rotateDegrees(15), edge.target.collisionBox.getRectangle().leftCenter);
+    if (this.shouldRenderTargetArrow(edge)) {
+      this.renderArrowHead(
+        edge,
+        new Vector(1, 0).rotateDegrees(15),
+        edge.target.collisionBox.getRectangle().leftCenter,
+      );
+    }
     // 画文字
     if (edge.text.trim() === "") {
       // 没有文字的边

@@ -108,6 +108,7 @@ export const settingsIcons = {
   mouseWheelWithShiftMode: LoaderPinwheel,
   mouseWheelWithCtrlMode: LoaderPinwheel,
   mouseWheelWithAltMode: LoaderPinwheel,
+  hideArrowWhenPointingToConnectPoint: CircleDot,
   doubleClickMiddleMouseButton: Circle,
   doubleClickMiddleMouseButtonOnEntity: Circle,
   mouseSideWheelMode: Grab,

@@ -4,6 +4,7 @@ import { Project, service } from "@/core/Project";
 import { CircleFlameEffect } from "@/core/service/feedbackService/effectEngine/concrete/CircleFlameEffect";
 import { LineCuttingEffect } from "@/core/service/feedbackService/effectEngine/concrete/LineCuttingEffect";
 import { Effect } from "@/core/service/feedbackService/effectEngine/effectObject";
+import { Settings } from "@/core/service/Settings";
 import { ConnectableEntity } from "@/core/stage/stageObject/abstract/ConnectableEntity";
 import { LineEdge } from "@/core/stage/stageObject/association/LineEdge";
 import { Edge } from "@/core/stage/stageObject/association/Edge";
@@ -223,7 +224,7 @@ export class VerticalPolyEdgeRenderer extends EdgeRendererClass {
           2 * this.project.camera.currentScale,
         );
 
-        if (!(edge.target instanceof ConnectPoint)) {
+        if (this.shouldRenderTargetArrow(edge)) {
           this.project.edgeRenderer.renderArrowHead(p1, verticalDirection, 15, edge.color);
         }
       } else if (verticalDirection.y === 0) {
@@ -272,7 +273,7 @@ export class VerticalPolyEdgeRenderer extends EdgeRendererClass {
           2 * this.project.camera.currentScale,
         );
 
-        if (!(edge.target instanceof ConnectPoint)) {
+        if (this.shouldRenderTargetArrow(edge)) {
           this.project.edgeRenderer.renderArrowHead(p1, verticalDirection, 15, edge.color);
         }
       } else {
@@ -311,7 +312,7 @@ export class VerticalPolyEdgeRenderer extends EdgeRendererClass {
         2 * this.project.camera.currentScale,
       );
       // 画箭头
-      if (!(edge.target instanceof ConnectPoint)) {
+      if (this.shouldRenderTargetArrow(edge)) {
         const size = 15;
         const direction = edge.target.collisionBox
           .getRectangle()
@@ -368,11 +369,16 @@ export class VerticalPolyEdgeRenderer extends EdgeRendererClass {
         2 * this.project.camera.currentScale,
       );
     }
-    this.renderArrowHead(
-      edge,
-      edge.target.collisionBox.getRectangle().getCenter().subtract(shiftingMidPoint).normalize(),
-      endPoint,
-    );
+    if (this.shouldRenderTargetArrow(edge)) {
+      this.renderArrowHead(
+        edge,
+        edge.target.collisionBox.getRectangle().getCenter().subtract(shiftingMidPoint).normalize(),
+        endPoint,
+      );
+    }
+  }
+  private shouldRenderTargetArrow(edge: LineEdge): boolean {
+    return !(Settings.hideArrowWhenPointingToConnectPoint && edge.target instanceof ConnectPoint);
   }
   private renderArrowHead(edge: LineEdge, direction: Vector, endPoint = edge.bodyLine.end.clone()) {
     const size = 15;
@@ -391,10 +397,12 @@ export class VerticalPolyEdgeRenderer extends EdgeRendererClass {
     );
     // 画箭头
     {
-      const size = 15;
-      const direction = new Vector(1, 0).rotateDegrees(15);
-      const endPoint = edge.target.collisionBox.getRectangle().leftCenter;
-      this.project.edgeRenderer.renderArrowHead(endPoint, direction, size, edge.color);
+      if (this.shouldRenderTargetArrow(edge)) {
+        const size = 15;
+        const direction = new Vector(1, 0).rotateDegrees(15);
+        const endPoint = edge.target.collisionBox.getRectangle().leftCenter;
+        this.project.edgeRenderer.renderArrowHead(endPoint, direction, size, edge.color);
+      }
     }
   }
   public getNormalStageSvg(edge: LineEdge): React.ReactNode {
@@ -422,16 +430,18 @@ export class VerticalPolyEdgeRenderer extends EdgeRendererClass {
       );
     }
     // 加箭头
-    const arrowHead = this.project.edgeRenderer.generateArrowHeadSvg(
-      edge.bodyLine.end.clone(),
-      edge.target.collisionBox
-        .getRectangle()
-        .getCenter()
-        .subtract(edge.source.collisionBox.getRectangle().getCenter())
-        .normalize(),
-      15,
-      edgeColor,
-    );
+    const arrowHead = this.shouldRenderTargetArrow(edge)
+      ? this.project.edgeRenderer.generateArrowHeadSvg(
+          edge.bodyLine.end.clone(),
+          edge.target.collisionBox
+            .getRectangle()
+            .getCenter()
+            .subtract(edge.source.collisionBox.getRectangle().getCenter())
+            .normalize(),
+          15,
+          edgeColor,
+        )
+      : null;
     return (
       <>
         {lineBody}

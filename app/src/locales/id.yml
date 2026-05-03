@@ -219,6 +219,11 @@ settings:
       straight: Garis Lurus
       bezier: Kurva Bezier
       vertical: Garis Patah Vertikal
+  hideArrowWhenPointingToConnectPoint:
+    title: Sembunyikan Panah Saat Mengarah ke Titik Koneksi
+    description: |
+      Saat diaktifkan, panah tidak dirender ketika target garis adalah titik koneksi.
+      Berlaku untuk garis lurus, kurva bezier, dan garis patah vertikal.
   isRenderCenterPointer:
     title: Tampilkan Penanda Silang Pusat
     description: |

@@ -48,10 +48,9 @@ export abstract class Edge extends ConnectableAssociation {
     const sourceRectangle = this.source.collisionBox.getRectangle();
     const targetRectangle = this.target.collisionBox.getRectangle();
 
-    const edgeCenterLine = new Line(
-      sourceRectangle.getInnerLocationByRateVector(this.sourceRectangleRate),
-      targetRectangle.getInnerLocationByRateVector(this.targetRectangleRate),
-    );
+    const sourceInner = sourceRectangle.getInnerLocationByRateVector(this.sourceRectangleRate);
+    const targetInner = targetRectangle.getInnerLocationByRateVector(this.targetRectangleRate);
+    const edgeCenterLine = new Line(sourceInner, targetInner);
     let startPoint: Vector;
     let endPoint: Vector;
 

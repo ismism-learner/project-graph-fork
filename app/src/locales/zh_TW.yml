@@ -229,6 +229,11 @@ settings:
       straight: 直線
       bezier: 貝塞爾曲線
       vertical: 垂直折線（已廢棄⚠️）
+  hideArrowWhenPointingToConnectPoint:
+    title: 連線指向質點時隱藏箭頭
+    description: |
+      開啟後，當連線的目標是質點時，不渲染箭頭，只保留線條本身。
+      對直線、貝塞爾曲線和垂直折線都生效。
   isRenderCenterPointer:
     title: 顯示中心十字準星
     description: |

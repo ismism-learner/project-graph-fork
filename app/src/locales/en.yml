@@ -170,6 +170,11 @@ settings:
       straight: Straight Line
       bezier: Bezier Curve
       vertical: Vertical Zigzag Line
+  hideArrowWhenPointingToConnectPoint:
+    title: Hide Arrow When Pointing to Connect Point
+    description: |
+      When enabled, arrows are not rendered if an edge points to a connect point.
+      Applies to straight lines, bezier curves, and vertical polyline edges.
   isRenderCenterPointer:
     title: Show Center Crosshair
     description: |

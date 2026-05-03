@@ -228,7 +228,7 @@ const categories = {
       "sectionBigTitleOpacity",
       "sectionBackgroundFillMode",
     ],
-    edge: ["lineStyle", "enableAutoEdgeWidth"],
+    edge: ["lineStyle", "hideArrowWhenPointingToConnectPoint", "enableAutoEdgeWidth"],
     entityDetails: [
       "nodeDetailsPanel",
       "alwaysShowDetails",

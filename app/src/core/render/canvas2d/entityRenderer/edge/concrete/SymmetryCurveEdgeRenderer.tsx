@@ -25,6 +25,10 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     super();
   }
 
+  private shouldRenderTargetArrow(edge: LineEdge): boolean {
+    return !(Settings.hideArrowWhenPointingToConnectPoint && edge.target instanceof ConnectPoint);
+  }
+
   getCuttingEffects(edge: LineEdge): Effect[] {
     const midLocation = edge.bodyLine.midPoint();
     return [
@@ -106,7 +110,14 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     let endDirection: Vector;
 
     if (edge.source instanceof ConnectPoint) {
-      startDirection = Vector.getZero();
+      const byRate = Edge.getNormalVectorByRate(edge.sourceRectangleRate);
+      if (byRate !== null) {
+        startDirection = byRate;
+      } else {
+        const center = edge.source.geometryCenter;
+        const radial = start.subtract(center);
+        startDirection = radial.magnitude() === 0 ? lineDirection : radial.normalize();
+      }
     } else {
       const fromRate = Edge.getNormalVectorByRate(edge.sourceRectangleRate);
       if (fromRate !== null) {
@@ -126,7 +137,14 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     }
 
     if (edge.target instanceof ConnectPoint) {
-      endDirection = Vector.getZero();
+      const byRate = Edge.getNormalVectorByRate(edge.targetRectangleRate);
+      if (byRate !== null) {
+        endDirection = byRate;
+      } else {
+        const center = edge.target.geometryCenter;
+        const radial = end.subtract(center);
+        endDirection = radial.magnitude() === 0 ? lineDirection.multiply(-1) : radial.normalize();
+      }
     } else {
       const toRate = Edge.getNormalVectorByRate(edge.targetRectangleRate);
       if (toRate !== null) {
@@ -345,12 +363,9 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
     }
 
     // 加箭头（箭头尖端在 arrowTip，方向指向节点）
-    const arrowHead = this.project.edgeRenderer.generateArrowHeadSvg(
-      arrowTip,
-      curveEndDirection.multiply(-1),
-      arrowSize,
-      edgeColor,
-    );
+    const arrowHead = this.shouldRenderTargetArrow(edge)
+      ? this.project.edgeRenderer.generateArrowHeadSvg(arrowTip, curveEndDirection.multiply(-1), arrowSize, edgeColor)
+      : null;
     return (
       <>
         {lineBody}
@@ -478,7 +493,9 @@ export class SymmetryCurveEdgeRenderer extends EdgeRendererClass {
       this.project.worldRenderUtils.renderSymmetryCurve(curve, color, width);
     }
     // 画箭头
-    this.project.edgeRenderer.renderArrowHead(end, curve.endDirection.multiply(-1), size, color);
+    if (!edge || this.shouldRenderTargetArrow(edge)) {
+      this.project.edgeRenderer.renderArrowHead(end, curve.endDirection.multiply(-1), size, color);
+    }
 
     if (Settings.showDebug) {
       const controlPoint1 = curve.bezier.ctrlPt1;
