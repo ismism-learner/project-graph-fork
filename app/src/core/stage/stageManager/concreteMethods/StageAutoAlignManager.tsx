@@ -227,7 +227,7 @@ export class AutoAlign {
     const moveTargetRectangle = selectionRect.clone();
     moveTargetRectangle.location.x += xMoveDiff;
     moveTargetRectangle.location.y += yMoveDiff;
-    this.project.effects.addEffect(RectangleRenderEffect.fromPreAlign(moveTargetRectangle));
+    this.project.effects.addEffect(RectangleRenderEffect.fromPreAlign(this.project, moveTargetRectangle));
     for (const targetRectangle of xTargetRectangles.concat(yTargetRectangles)) {
       this.project.effects.addEffect(EntityAlignEffect.fromEntity(moveTargetRectangle, targetRectangle));
     }
@@ -344,7 +344,7 @@ export class AutoAlign {
       moveTargetRectangle.location.x += xMoveDiff;
       moveTargetRectangle.location.y += yMoveDiff;
 
-      this.project.effects.addEffect(RectangleRenderEffect.fromPreAlign(moveTargetRectangle));
+      this.project.effects.addEffect(RectangleRenderEffect.fromPreAlign(this.project, moveTargetRectangle));
       for (const targetRectangle of xTargetRectangles.concat(yTargetRectangles)) {
         this.project.effects.addEffect(EntityAlignEffect.fromEntity(moveTargetRectangle, targetRectangle));
       }
