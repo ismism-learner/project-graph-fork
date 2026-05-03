@@ -32,6 +32,9 @@ export class NodeAdder {
     addToSections: Section[],
     selectCurrent = false,
     shouldRecordHistory = true,
+    options?: {
+      overrideFontScaleLevel?: number;
+    },
   ): Promise<string> {
     const autoFillColor = this.getAutoColor();
     const autoDetailsTemplate = Settings.autoNamerDetailsTemplate;
@@ -48,9 +51,10 @@ export class NodeAdder {
       details: autoDetails,
       collisionBox: new CollisionBox([new Rectangle(clickWorldLocation, Vector.getZero())]),
       color: autoFillColor,
+      fontScaleLevel: options?.overrideFontScaleLevel ?? 0,
     });
     // 根据摄像机缩放级别自动设置字体大小，使节点视觉大小保持恒定
-    if (Settings.newNodeScaleByCamera) {
+    if (options?.overrideFontScaleLevel === undefined && Settings.newNodeScaleByCamera) {
       const autoLevel =
         Math.round(-2 * Math.log2(this.project.camera.currentScale)) + Settings.newNodeScaleByCameraOffset;
       if (autoLevel !== 0) {
@@ -120,7 +124,9 @@ export class NodeAdder {
       createLocation = entityRectangle.rightCenter.add(new Vector(distanceLength, 0));
     }
     addToSections = this.project.sectionMethods.getFatherSections(selectedEntity);
-    const uuid = await this.addTextNodeByClick(createLocation, addToSections, selectCurrent, false);
+    const uuid = await this.addTextNodeByClick(createLocation, addToSections, selectCurrent, false, {
+      overrideFontScaleLevel: selectedEntity instanceof TextNode ? selectedEntity.fontScaleLevel : 0,
+    });
     const newNode = this.project.stageManager.getTextNodeByUUID(uuid);
     if (!newNode) {
       throw new Error("Failed to add node");
